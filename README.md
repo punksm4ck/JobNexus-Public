@@ -32,3 +32,13 @@ Navigate to the **Configuration & APIs** tab to plug in your free Adzuna API key
 
 ## 📄 License
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+**Windows Environment Automation**
+
+This project contains the automated deployment and configuration sequence for Windows systems.
+
+**Execution**
+
+Review the script contents to ensure appropriate administrative privileges are available in your terminal prior to execution.
+
+bash windows_setup.sh
