@@ -360,6 +360,57 @@ function renderTracker() {
             </div>
         </div>`).join('');
 }
+
+async function generateMockInterview(id) {
+  const job = allJobs.find(j=>j.id===id)||savedJobs.find(j=>j.id===id);
+  if(!job) return;
+  const out = document.getElementById('intel-output');
+  const btn = document.getElementById('btn-intel-gen');
+  const cfg = loadSettings();
+  if(!cfg.groqKey) { out.innerHTML = '<span style="color:var(--red)">API Key missing. Add Groq key in Settings.</span>'; return; }
+
+  btn.textContent = 'Analyzing...'; btn.disabled = true;
+  out.innerHTML = '<div class="spinner"></div> Extracting corporate intelligence...';
+
+  const prompt = `Act as an expert technical recruiter. Analyze this job: ${job.title} at ${job.company}. Description: ${job.description}. Provide: 1) A 2-sentence company strategy analysis. 2) The top 3 technical/hard ATS keywords they care about. 3) 5 highly specific mock interview questions tailored to this exact role. Format cleanly with simple text and line breaks.`;
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.groqKey},
+      body:JSON.stringify({model:cfg.model||'llama-3.3-70b-versatile', messages:[{role:'user',content:prompt}], temperature:0.6, max_tokens:800})
+    });
+    const data = await res.json();
+    out.innerHTML = data.choices[0].message.content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  } catch(e) { out.innerHTML = '<span style="color:var(--red)">Analysis failed: '+e.message+'</span>'; }
+  btn.textContent = 'Run Deep Analysis ✦'; btn.disabled = false;
+}
+
+async function triggerShadowApply(id) {
+  const job = allJobs.find(j=>j.id===id)||savedJobs.find(j=>j.id===id);
+  if(!job) return;
+  showToast('AEGIS TELEMETRY: Spawning headless browser instance...', 3000);
+  setStatus('Shadow-Apply bot initiated for job '+id, 'loading');
+
+  try {
+    const res = await fetch('http://localhost:3457/api/shadow-apply', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        job_id: job.id,
+        job_url: job.link,
+        target_platform: job.source
+      })
+    });
+    const data = await res.json();
+    showToast('SUCCESS: Payload injected and application submitted.', 3000, 'success');
+    setStatus('Shadow-Apply complete: ' + data.job_id, 'success');
+    addToTracker(id, 'applied');
+  } catch(e) {
+    showToast('ERROR: Shadow-Apply failed to connect to AEGIS Engine.', 4000, 'error');
+    setStatus('Shadow-Apply failed.', 'error');
+  }
+}
 </script>
 </body>
 </html>"""
